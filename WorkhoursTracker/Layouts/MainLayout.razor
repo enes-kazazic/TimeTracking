@@ -1,0 +1,32 @@
+﻿@inherits LayoutComponentBase
+@inject NavigationManager navManager
+
+<Layout Style="height:100%">
+    <Header Class="app-header">
+        <div class="logo" @onclick="@(()=> navManager.NavigateTo("/"))"> 
+            <Text Class="app-title">Time Tracking</Text>
+        </div>
+        <div class="logout">
+            <Button Type="@ButtonType.Text"
+                    Style="color:white"
+                    Class="logout-buton">
+                <Icon Type="logout" Theme="outline" Style="font-size:24px;"/>   
+                Logout
+            </Button>
+        </div>
+    </Header>
+    <Layout>
+        <Sider BreakPoint="@BreakpointType.Xl">
+
+            <Menu Theme="MenuTheme.Dark" Mode="MenuMode.Inline" DefaultSelectedKeys=@(new[]{"1"})>
+                <MenuItem Key="1" OnClick="@(()=> navManager.NavigateTo("/"))"> 
+                    <Icon Type="home" Class="menu-item-icon"/> 
+                    Home
+                </MenuItem>
+            </Menu>
+        </Sider >
+        <Content Style="padding:65px">
+            @Body
+        </Content>
+    </Layout>
+</Layout>
