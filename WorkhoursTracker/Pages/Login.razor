@@ -1,0 +1,68 @@
+﻿@page "/login"
+
+@using System.Net;
+@using TimeTracking.Pages;
+@using WorkhoursTracker.Layouts;
+@using Microsoft.AspNetCore.Authorization;
+@using Microsoft.AspNetCore.Components.Forms;
+@using WorkhoursTracker.Models;
+@layout EmptyLayout;
+@attribute [AllowAnonymous]
+
+@inject NavigationManager NavManager
+
+<div class="login-wrapper">
+    <Form Model="@loginModel" OnFinish="OnFinish" Class="login-form" LabelColSpan="8" WrapperColSpan="4">
+        <Image Src="@($"images\\myLogo.png")" Preview=false Style="width:90px;height:90px;margin-bottom:30px"></Image>
+
+        <FormItem>
+            <Input @bind-Value="@context.user" Placeholder="Username" />
+        </FormItem>
+        <FormItem>
+            <InputPassword @bind-Value="@context.password" Placeholder="Password" />
+        </FormItem>
+        <FormItem Class="login-button-item">
+            <Button Class="login-button" Type="@ButtonType.Primary" HtmlType="submit">
+                Login
+            </Button>
+        </FormItem>
+        <FormItem WrapperColOffset="8" WrapperColSpan="16">
+                @*<Spin Tip="loading..." Spinning=@spin />*@
+                @*<div>@ErrorMessage</div>*@
+        </FormItem>
+    </Form>
+</div>
+
+@code {
+    private LoginModel loginModel = new LoginModel();
+
+    private async Task OnFinish(EditContext editContext)
+    {
+        try
+        {
+            //var loginRequestBody = new Dictionary<string, string>();
+
+            //var model = editContext.Model as LoginModel;
+
+            //loginRequestBody.Add("user", model.user);
+            //loginRequestBody.Add("password", model.password);
+
+            //var response = await httpClient.GetResponse<LoginResponse>(
+            //    method: HttpMethod.Post,
+            //    requestUri: $"/login",
+            //    requestBody: loginRequestBody);
+
+            //var tokenResult = response.jwt;
+            //authStateProvider.Login(tokenResult:response.jwt, response.employeeId);
+            StateHasChanged();
+
+            NavManager.NavigateTo("/");
+
+        }
+        catch (Exception)
+        {
+            Console.WriteLine("Exception occured.");
+        }
+
+    }
+}

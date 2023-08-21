@@ -1,0 +1,343 @@
+﻿@page "/"
+@using AntDesign;
+@using TimeTracking.Pages;
+@using WorkhoursTracker.Models;
+
+@*@inject TimeTrackingHttpClient trackingHttpClient*@
+@inject MessageService _message
+@inject ModalService _modalService
+
+<div class="index-wrapper">
+    <div class="actions-wrapper">
+
+        <div class="action-item">
+            <Button Class="action-button" OnClick="@(()=>ShowModal(0))">
+                <Icon Type="clock-circle" Theme="outline" Class="action-icon" />
+                <Text Class="actions-text">
+                    LOGIN/LOGOUT
+                </Text>
+            </Button>
+
+            <div class="item-status @(CurrentAction == "Login/logout" ? "item-active" : "")" />
+        </div>
+        <div class="action-item">
+            <Button Class="action-button" OnClick="@(()=>ShowModal(1011))">
+                <Icon Type="pause-circle" Theme="outline" Class="action-icon" />
+                <Text Class="actions-text">
+                    BREAK
+                </Text>
+            </Button>
+
+            <div class="item-status @(CurrentAction == "Break" ? "item-active" : "")" />
+        </div>
+        <div class="action-item">
+            <Button Class="action-button" OnClick="@(()=>ShowModal(1082))">
+                <Icon Type="home" Theme="outline" Class="action-icon" />
+                <Text Class="actions-text">
+                    REMOTE WORK
+                </Text>
+            </Button>
+
+            <div class="item-status @(CurrentAction == "RemoteWork" ? "item-active" : "")" />
+        </div>
+        <div class="action-item">
+            <Button Class="action-button" OnClick="@(()=>ShowModal(1013))">
+                <Icon Type="car" Theme="outline" Class="action-icon" />
+                <Text Class="actions-text">
+                    PRIVATE EXIT
+                </Text>
+            </Button>
+
+            <div class="item-status @(CurrentAction == "PrivateExit" ? "item-active" : "")" />
+        </div>
+        <div class="action-item">
+            <Button Class="action-button" OnClick="@(()=>ShowModal(1012))">
+                <Icon Type="audit" Theme="outline" Class="action-icon" />
+                <Text Class="actions-text">
+                    OFFICIAL EXIT
+                </Text>
+            </Button>
+
+            <div class="item-status @(CurrentAction == "OfficialExit" ? "item-active" : "")" />
+        </div>
+    </div>
+
+    <div class="details-wrapper">
+        <div class="table-wrapper">
+            @*<Button Class="reload-button"
+            Loading="@ReloadLoading"
+            OnClick="GetLogs">
+            <Icon Type="undo" Theme="outline" />
+            </Button>*@
+            <Table DataSource="Items"
+                          HidePagination>
+                <Column Title="Id"
+                        Align="ColumnAlign.Center"
+                        @bind-Field="@context.Id">
+                </Column>
+                <Column Title="Check-in type"
+                        Align="ColumnAlign.Left"
+                        @bind-Field="@context.purposeName" />
+                <Column Title="Check-in time"
+                        Align="ColumnAlign.Center"
+                        @bind-Field="@context.logDateTime"
+                        Format="@("dd.MM.yyyy HH:mm:ss")" />
+                <Column Title="Source"
+                        Align="ColumnAlign.Center"
+                        @bind-Field="@context.logSource" />
+            </Table>
+        </div>
+        <div class="details-cards-wrapper">
+            <div class="details-worktime-wrapper">
+                <div class="details-card">
+                    <Text Class="details-title">Start time</Text>
+                    <Text Class="details-text">@WorkTimeStart</Text>
+                </div>
+                <div class="details-card">
+                    <Text Class="details-title">
+                        End time
+                        <Text Class="details-subtitle">(expected)</Text>
+                    </Text>
+                    <Text Class="details-text">@WorkTimeEnd</Text>
+                </div>
+                <div class="details-card card-countdown">
+                    @if (StartCountdown)
+                    {
+                        <CountDown Title="Countdown"
+                                   Value="CountDownStart"
+                                   OnFinish="@(async ()=> await _message.Open(new MessageConfig(){ Type=MessageType.Success, Duration=60, Content="Radno vrijeme je završeno." }))" />
+                    }
+                    else
+                    {
+                        <AntDesign.Text Style="margin-bottom: 4px;color: rgba(0, 0, 0, 0.45);font-size: 14px;">
+                            Countdown
+                        </AntDesign.Text>
+                        <AntDesign.Text Style="font-size:24px">00:00:00</AntDesign.Text>
+                    }
+                    @if (Items != null && Items.Count > 0)
+                    {
+                        <Button Class="startButton">
+                            <Icon Type="@(StartCountdown ? "pause-circle" : "play-circle" )"
+                                  Theme="outline"
+                                  OnClick="@(()=> StartCountdown = !StartCountdown)" />
+                        </Button>
+                    }
+                </div>
+            </div>
+            <div class="status-card">
+                <Text Class="details-title">Breaktime used</Text>
+                <Progress Type=ProgressType.Circle Percent=@((BreakTimeUsed/6000)*100) Format="@((p)=> BreakTimeUsed.ToString("00:##:##"))" />
+            </div>
+        </div>
+    </div>
+    @if (!string.IsNullOrEmpty(RealizationYear))
+    {
+        <div class="realization-card">
+            <div class="realization-title">
+                <Text Class="realization-title-text">Realization(h)</Text>
+                <Text Class="realization-subtitle">
+                    <Text>@RealizationMonth</Text>
+                    <Text>@RealizationYear</Text>
+                </Text>
+            </div>
+            @foreach (var day in RealizationDays.realizationDays)
+            {
+                <div class="realization-day">
+                    <div class="realization-datetime">
+                        <span class="day"> @(Convert.ToDateTime(day.date).Date.ToString("ddd"))</span>
+                        <span class="date">@(Convert.ToDateTime(day.date).Date.ToString("dd"))</span>
+                    </div>
+                    <span class="hours">@($"{Convert.ToDateTime(day.totalGrossTime).ToString("HH")}h")</span>
+                </div>
+            }
+        </div>
+    }
+</div>
+
+<Modal Visible=ConfirmModalVisible
+       Title="Are you sure?"
+       OnOk="AddLog"
+       OnCancel="@(()=> ConfirmModalVisible = false)"
+       OkText="@("Yes, continue.")"
+       CancelText="@("No, Cancel")">
+</Modal>
+
+@code {
+    public int ActionId { get; set; }
+    public int NumberOrder { get; set; } = 1;
+    public string CurrentAction { get; set; } = string.Empty;
+
+    private List<Actions> Actions { get; set; } = new List<Actions>();
+    private List<Items> Items { get; set; } = new List<Items>();
+    private RealizationDays RealizationDays { get; set; } = new RealizationDays();
+
+    public string WorkTimeStart { get; set; } = string.Empty;
+    public string WorkTimeEnd { get; set; } = string.Empty;
+    public double BreakTimeUsed { get; set; }
+    public bool ConfirmModalVisible { get; set; }
+    public bool ReloadLoading { get; set; }
+
+    public DateTime CountDownStart { get; set; }
+    public bool StartCountdown { get; set; } = false;
+
+    public string RealizationMonth { get; set; } = string.Empty;
+    public string RealizationYear { get; set; } = string.Empty;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await GetLogs();
+
+        var breakTime = CalculateBreakTime();
+        var endTime = CalculateWorkingHours(breakTime);
+
+        CountDownStart = DateTime.Now + (DateTime.Today.Add(endTime) - DateTime.Now);
+
+        Items = Items.OrderByDescending(x => x.logDateTime).ToList();
+
+        await GetRealizationDays();
+
+    }
+
+    private async Task GetLogs()
+    {
+        ReloadLoading = true;
+
+        //var timeLogsResponse = await trackingHttpClient.GetResponse<TimeLogs>(
+        //       method: HttpMethod.Get,
+        //       requestUri: $"demoEndpoint/demoAction");
+
+        //TEST DATA
+        Items = new List<Items>()
+        {
+            new Items()
+            {
+                Id = 1,
+                purposeName = "Login",
+                logDateTime = new DateTime(2023,5,22,8,0,0),
+                logSource="device"
+            },
+            new Items()
+            {
+                Id = 1,
+                purposeName = "BreakTime",
+                logDateTime = new DateTime(2023,5,22,9,30,0),
+                logSource="system"
+            }
+        };
+        CurrentAction = Items.Last().purposeName;
+
+        ReloadLoading = false;
+        StateHasChanged();
+    }
+
+    private TimeSpan CalculateWorkingHours(TimeSpan BreakTimeUsed)
+    {
+        TimeSpan workTimeStart;
+        if (Items.First().logDateTime.Minute <= 10)
+            workTimeStart = Items.First().logDateTime.TimeOfDay;
+        else
+            workTimeStart = Items.First().logDateTime.AddHours(1).TimeOfDay;
+
+        var workTimeEnd = TimeSpan.FromHours(workTimeStart.Hours)
+                        + TimeSpan.FromHours(7)
+                        + BreakTimeUsed;
+
+
+        WorkTimeStart = new DateTime(workTimeStart.Ticks).ToString("HH:mm");
+        WorkTimeEnd = new DateTime(workTimeEnd.Ticks).ToString("HH:mm");
+
+        return workTimeEnd;
+    }
+
+    private TimeSpan CalculateBreakTime()
+    {
+        TimeSpan breakTimeUsed = TimeSpan.Zero;
+
+        for (int i = 0; i < Items.Count; i++)
+        {
+            var item = Items[i];
+
+            if (item.purposeName == "Break")
+            {
+                var amount = TimeSpan.Zero;
+                if ((i + 1) == Items.Count)
+                    amount = DateTime.Now.TimeOfDay - Items[i].logDateTime.TimeOfDay;
+                else
+                    amount = Items[i + 1].logDateTime.TimeOfDay - Items[i].logDateTime.TimeOfDay;
+
+                breakTimeUsed = breakTimeUsed.Add(amount);
+            }
+        }
+
+        var hours = breakTimeUsed.Hours.ToString("00");
+        var minutes = breakTimeUsed.Minutes.ToString("00");
+        var seconds = breakTimeUsed.Seconds.ToString("00");
+
+        BreakTimeUsed = double.Parse($"{hours},{minutes}{seconds}");
+        return breakTimeUsed;
+    }
+
+    private async Task GetRealizationDays(DateTimeChangedEventArgs? datetime = null)
+    {
+        datetime = new DateTimeChangedEventArgs();
+        datetime.Date = DateTime.Today;
+
+        //var response = await trackingHttpClient.GetResponse<RealizationDays>(
+        //    method: HttpMethod.Get,
+        //    requestUri: $"profile/realizationDays");
+
+        //var response;
+
+        //if (response != null && response?.realizationDays.Count > 0)
+        //{
+        //    response.realizationDays = response.realizationDays.OrderBy(x => x.date).ToList();
+        //    RealizationDays = response;
+        //}
+
+
+        //TEST DATA
+        for (int i = 0; i < 5; i++)
+        {
+
+            RealizationDays.realizationDays.Add(new RealizationItem()
+                {
+                    date = DateTime.Today.AddDays(-(-i + 5)).ToString(),
+                    totalGrossTime = "08:00:00"
+                }
+            );
+        }
+
+        RealizationMonth = Convert.ToDateTime(DateTime.Now.ToString()).Date.ToString("MMM");
+        RealizationYear = Convert.ToDateTime(DateTime.Now.ToString()).Date.ToString("yyyy");
+    }
+
+    private void ShowModal(int Id)
+    {
+        ConfirmModalVisible = true;
+        ActionId = Id;
+    }
+
+    private async Task AddLog()
+    {
+        //var employeeId = authStateProvider.GetuserId().ToString();
+        string employeeId = "1234";
+
+        var requestBody = new Dictionary<string, string>
+        {
+            { "employeeId", employeeId },
+            //{ "purposeId", ActionId.ToString() },
+        };
+
+        //await trackingHttpClient.GetResponse<dynamic>(
+        //    method: HttpMethod.Post,
+        //    requestUri: "/times",
+        //    requestBody: requestBody);
+
+        await _message.Success("Log added sucessfully.");
+        ConfirmModalVisible = false;
+
+        await GetLogs();
+
+        StateHasChanged();
+    }
+}
